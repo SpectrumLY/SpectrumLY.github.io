@@ -7,7 +7,7 @@ title: "Spectrum Space"
 <div class="hero-header">
     <div class="hero-content">
         <div class="hero-tag">EST. 2025</div>
-        <h1 class="hero-title">SPECTRUM SPACE</h1>
+        <h1 class="hero-title">YUN SPACE</h1>
         <div class="hero-buttons">
             <a href="/photomap/" class="btn-main">Photography</a>
             <a href="/research/" class="btn-sub">Research</a>
@@ -19,7 +19,7 @@ title: "Spectrum Space"
     <div class="about-me-content">
         <h2 class="section-title">About Me</h2>
         <div class="bio-text">
-            <p class="drop-cap">嗨，我是 <strong>Spectrum</strong>。</p>
+            <p class="drop-cap">嗨，我是 <strong>YUN</strong>。</p>
             <!-- <p>在这个空间里，我试图平衡感性的视觉表达与理性的思维厚度。这里的每一帧画面和每一行文字，都是我观察世界的独特频谱。</p> -->
         </div>
         <div class="about-dynamic-grid">
@@ -28,7 +28,7 @@ title: "Spectrum Space"
                 <div class="timeline-container">
                     <div class="timeline-item">
                         <span class="time-year">2025</span>
-                        <p class="time-event">Spectrum Space 数字化空间正式上线。</p>
+                        <p class="time-event">YUN Space 数字化空间正式上线。</p>
                     </div>
                     </div>
                 </div>
@@ -39,8 +39,8 @@ title: "Spectrum Space"
             </div>
         </div>
         <div class="social-icons">
-            <a href="https://github.com/SpectrumLY" target="_blank" class="social-link">GitHub</a>
-            <a href="mailto:your-email@example.com" class="social-link">Email</a>
+            <!-- <a href="https://github.com/SpectrumLY" target="_blank" class="social-link">GitHub</a>
+            <a href="mailto:your-email@example.com" class="social-link">Email</a> -->
         </div>
     </div>
 </div>
@@ -66,17 +66,17 @@ title: "Spectrum Space"
 
 @keyframes contentUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-.hero-tag { font-size: 0.7rem; letter-spacing: 6px; opacity: 0.7; margin-bottom: 25px; text-transform: uppercase; }
+.hero-tag { font-size: 0.9rem; letter-spacing: 6px; opacity: 0.7; margin-bottom: 25px; text-transform: uppercase; }
 
 .hero-title {
     font-family: 'Cinzel', serif !important; 
     font-size: clamp(2.2rem, 7vw, 4.8rem);
-    letter-spacing: 18px; font-weight: 400; margin: 0; padding-left: 18px;
+    letter-spacing: 20px; font-weight: 400; margin: 0; padding-left: 18px;
     text-shadow: 0 12px 40px rgba(0,0,0,0.4);
 }
 
 /* --- 按钮样式 --- */
-.hero-buttons { margin-top: 100px; display: flex; gap: 35px; justify-content: center; }
+.hero-buttons { margin-top: 60px; display: flex; gap: 35px; justify-content: center; }
 .btn-main, .btn-sub { padding: 14px 40px; border-radius: 0; text-decoration: none !important; font-size: 0.72rem; letter-spacing: 3px; text-transform: uppercase; transition: 0.4s; }
 .btn-main { background: white; color: black !important; }
 .btn-sub { border: 1px solid rgba(255,255,255,0.7); color: white !important; }

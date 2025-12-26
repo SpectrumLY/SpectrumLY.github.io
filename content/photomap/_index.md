@@ -8,32 +8,25 @@ draft: false
 
 <div class="photomap-page">
 
-  <h2 style="text-align: center; font-family: 'Cinzel', serif; letter-spacing: 5px; margin-top: 30px;">
+  <h2 class="section-title">
     FOOTPRINTS
   </h2>
 
-  <div
-    id="photo-map"
-    style="
-      height: 500px;
-      width: 100%;
-      border-radius: 12px;
-      background: #001529;
-      border: 1px solid #333;
-      margin: 20px 0;
-    ">
-  </div>
+  <!-- 地图 -->
+  <div id="photo-map"></div>
 
-  <hr style="margin: 50px 0; border: 0; border-top: 1px solid #eee;">
+  <hr class="section-divider">
 
-  <h3 style="text-align: center; font-family: 'Cinzel', serif; letter-spacing: 3px; margin-bottom: 30px;">
+  <h3 class="section-subtitle">
     EXPLORE GALLERIES
   </h3>
 
+  <!-- 相册网格 -->
   <div class="gallery-grid" id="gallery-grid"></div>
 
 </div>
 
+<!-- Leaflet -->
 <link
   rel="stylesheet"
   href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -42,6 +35,7 @@ draft: false
 
 <script>
 window.addEventListener('load', function () {
+
   var cities = [
     {
       name: "Sydney",
@@ -61,6 +55,9 @@ window.addEventListener('load', function () {
     }
   ];
 
+  /* ===============================
+     地图初始化
+     =============================== */
   var map = L.map('photo-map', {
     attributionControl: false,
     scrollWheelZoom: true
@@ -74,6 +71,8 @@ window.addEventListener('load', function () {
   var gridContainer = document.getElementById('gallery-grid');
 
   cities.forEach(function (city) {
+
+    /* 地图 Marker */
     var photoIcon = L.divIcon({
       className: 'photo-marker',
       html:
@@ -91,18 +90,19 @@ window.addEventListener('load', function () {
         window.location.href = city.link;
       });
 
+    /* 下方卡片 */
     var card = document.createElement('div');
     card.className = 'city-card';
     card.innerHTML =
       '<a href="' + city.link + '">' +
-      '<div class="card-img-box">' +
-      '<img src="' + city.thumb + '" alt="' + city.name + '">' +
-      '<div class="card-overlay"><span>ENTER GALLERY</span></div>' +
-      '</div>' +
-      '<div class="card-info">' +
-      '<h4>' + city.name + ', ' + city.country + '</h4>' +
-      (city.desc ? '<p class="city-desc">' + city.desc + '</p>' : '') +
-      '</div>' +
+        '<div class="card-img-box">' +
+          '<img src="' + city.thumb + '" alt="' + city.name + '">' +
+          '<div class="card-overlay"><span>ENTER GALLERY</span></div>' +
+        '</div>' +
+        '<div class="card-info">' +
+          '<h4>' + city.name + ', ' + city.country + '</h4>' +
+          (city.desc ? '<p class="city-desc">' + city.desc + '</p>' : '') +
+        '</div>' +
       '</a>';
 
     gridContainer.appendChild(card);
@@ -112,20 +112,15 @@ window.addEventListener('load', function () {
 
 <style>
 /* ===============================
-   🔥 FixIt 布局修复（核心）
+   页面整体结构
    =============================== */
 
 .photomap-page {
-  display: block !important;
   width: 100%;
+  display: block;
 }
 
-/* 强制所有子元素纵向排列 */
-.photomap-page > * {
-  width: 100%;
-}
-
-/* 防止 FixIt 用 flex / grid 并排内容 */
+/* 防止 FixIt 并排布局 */
 .page-content,
 .post-content,
 .fi-container main {
@@ -133,11 +128,55 @@ window.addEventListener('load', function () {
 }
 
 /* ===============================
-   地图标记样式
+   标题
+   =============================== */
+
+.section-title {
+  text-align: center;
+  font-family: "Cinzel", serif;
+  letter-spacing: 5px;
+  margin: 30px 0 20px;
+}
+
+.section-subtitle {
+  text-align: center;
+  font-family: "Cinzel", serif;
+  letter-spacing: 3px;
+  margin-bottom: 30px;
+}
+
+.section-divider {
+  margin: 50px 0;
+  border: none;
+  border-top: 1px solid #eee;
+}
+
+/* ===============================
+   地图（高度在这里控制）
+   👉 改 620px / 65vh 都行
+   =============================== */
+
+#photo-map {
+  height: 660px;
+  width: 100%;
+  border-radius: 12px;
+  background: #001529;
+  border: 1px solid #333;
+  margin: 20px 0;
+}
+
+@media (max-width: 768px) {
+  #photo-map {
+    height: 420px;
+  }
+}
+
+/* ===============================
+   地图 Marker
    =============================== */
 
 .photo-marker {
-  display: inline-flex !important;
+  display: inline-flex;
   flex-direction: column;
   align-items: center;
 }
@@ -145,7 +184,7 @@ window.addEventListener('load', function () {
 .photo-marker .img-wrap {
   height: 66px;
   padding: 4px;
-  background: white;
+  /* background: white; */
   border: 1px solid #000;
   border-radius: 4px;
 }
@@ -160,7 +199,7 @@ window.addEventListener('load', function () {
   font-size: 11px;
   font-weight: bold;
   color: #fff;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0,0,0,0.6);
   padding: 2px 8px;
   border-radius: 4px;
 }
@@ -176,7 +215,11 @@ window.addEventListener('load', function () {
 }
 
 .city-card {
-  transition: all 0.4s ease;
+  transition: transform 0.35s ease;
+}
+
+.city-card:hover {
+  transform: translateY(-4px);
 }
 
 .card-img-box {
@@ -196,31 +239,93 @@ window.addEventListener('load', function () {
 .card-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0,0,0,0.45);
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .city-card:hover .card-overlay {
   opacity: 1;
 }
 
+.card-overlay span {
+  color: white;
+  border: 1px solid white;
+  padding: 10px 20px;
+  font-size: 10px;
+  letter-spacing: 3px;
+  font-family: "Cinzel", serif;
+}
+
+/* ===============================
+   文字排版（核心精修）
+   =============================== */
+
 .card-info {
-  padding: 20px 0;
+  padding: 14px 0 0;
   text-align: center;
 }
 
+.card-info h4 {
+  margin: 0;
+  font-family: "Cinzel", serif;
+  font-size: 0.95rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
 .city-desc {
-  font-size: 0.8rem;
+  margin-top: 6px;
+  font-family: "Cinzel", serif;
+  font-style: italic;
+  font-size: 0.78rem;
+  letter-spacing: 1px;
+  line-height: 1.6;
   color: #888;
 }
 
-/* 暗色模式适配 */
 @media (prefers-color-scheme: dark) {
   .city-desc {
     color: #aaa;
   }
 }
+
+.city-card a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* === 地图缩略图 hover 互动效果 === */
+.photo-marker {
+    cursor: pointer;
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 核心：向右轻晃 + 微缩放 */
+.photo-marker:hover {
+    transform: translateX(8px) scale(1.05);
+}
+
+/* 图片本体更细腻一点 */
+.photo-marker .img-wrap {
+    transition: box-shadow 0.35s ease, transform 0.35s ease;
+}
+
+.photo-marker:hover .img-wrap {
+    box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+}
+
+/* 标签轻微跟随 */
+.photo-marker .label {
+    transition: transform 0.35s ease, opacity 0.35s ease;
+}
+
+.photo-marker:hover .label {
+    transform: translateX(4px);
+    opacity: 1;
+}
+
 </style>
