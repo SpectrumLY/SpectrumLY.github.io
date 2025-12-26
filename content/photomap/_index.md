@@ -49,7 +49,7 @@ window.addEventListener('load', function () {
       name: "Gold Coast",
       country: "Australia",
       coords: [-28.0167, 153.4],
-      thumb: "/photomap/goldcoast/sunset sea.jpg",
+      thumb: "/photomap/goldcoast/Sinking Fire.jpg",
       link: "/photomap/goldcoast/",
       desc: "Endless coastline and the rhythm of the Pacific."
     }
