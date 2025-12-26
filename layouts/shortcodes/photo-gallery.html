@@ -1,0 +1,143 @@
+<div class="curated-auto-gallery">
+    {{ range $index, $element := .Page.Resources.Match "*.jpg" }}
+    <div class="gallery-item">
+        <div class="museum-frame">
+            <a href="{{ .RelPermalink }}" target="_blank" class="photo-link">
+                <div class="image-stage">
+                    <img src="{{ .RelPermalink }}" alt="{{ .Name }}" loading="lazy">
+                </div>
+            </a>
+            
+            <div class="meta-inline">
+                <span class="serial-no">{{ printf "%02d" (add $index 1) }}</span>
+                <span class="label-dot"></span>
+                <span class="caption-text">
+                    {{ $baseName := replace (replace (replace .Name ".jpg" "") ".JPG" "") "-" " " }}
+                    {{ if and .Title (not (in (lower .Title) ".jpg")) }}
+                        {{ .Title }}
+                    {{ else }}
+                        {{ $baseName }}
+                    {{ end }}
+                </span>
+            </div>
+
+            {{ with .Params.description }}
+            <div class="photo-description">
+                {{ . }}
+            </div>
+            {{ end }}
+        </div>
+    </div>
+    {{ end }}
+</div>
+
+<style>
+/* --- 布局模块 --- */
+.curated-auto-gallery {
+    column-count: 2;
+    column-gap: 50px;
+    padding: 30px 0;
+}
+
+@media (max-width: 768px) {
+    .curated-auto-gallery {
+        column-count: 1;
+        column-gap: 0;
+    }
+}
+
+.gallery-item {
+    break-inside: avoid;
+    margin-bottom: 70px;
+}
+
+/* --- 画框模块：自动适配颜色的边框 --- */
+.image-stage {
+    position: relative;
+    /* 使用 currentColor 配合透明度：它会自动根据当前文字颜色变浅或变深 */
+    border: 1px solid currentColor; 
+    background: #000;
+    line-height: 0;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    transition: all 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.museum-frame:hover .image-stage {
+    transform: translateY(-8px);
+    box-shadow: 0 25px 50px rgba(0,0,0,0.12);
+}
+
+.image-stage img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* --- 文字模块：核心修复 --- */
+.meta-inline {
+    margin-top: 18px;
+    display: flex;
+    align-items: center;
+}
+
+.serial-no {
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem;
+    color: #888; /* 固定一个中性色 */
+}
+
+.label-dot {
+    width: 3px;
+    height: 3px;
+    /* 这里的颜色设为跟标题文字一致 */
+    background: currentColor; 
+    opacity: 0.3;
+    border-radius: 50%;
+    margin: 0 12px;
+}
+
+.caption-text {
+    font-family: 'Cinzel', serif;
+    font-size: 0.8rem;
+    /* 关键：使用 inherit 强制跟随父元素(即主题)的文字颜色 */
+    color: inherit; 
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+/* --- 笔记模块 --- */
+.photo-description {
+    margin-top: 12px;
+    padding-left: 32px;
+    font-size: 0.85rem;
+    /* 描述文字也设为 inherit 但调低透明度 */
+    color: inherit;
+    opacity: 0.7; 
+    line-height: 1.7;
+    font-style: italic;
+    font-family: "Noto Serif SC", "PingFang SC", serif;
+    border-left: 1px solid currentColor;
+    border-left-width: 1px;
+    margin-left: 2px;
+}
+
+.museum-frame:hover .label-dot {
+    opacity: 1;
+    transform: scale(1.5);
+}
+
+.photo-link { text-decoration: none; display: block; color: inherit; }
+
+/* 针对暗色模式的强制补丁：如果主题的 inherit 还是黑的，这里做最后兜底 */
+@media (prefers-color-scheme: dark) {
+    .caption-text { color: #fff !important; }
+}
+
+/* 如果你的主题是通过类名控制，这里再加上常用类名的强制覆盖 */
+.dark .caption-text, 
+[data-theme='dark'] .caption-text,
+.night .caption-text { 
+    color: #ffffff !important; 
+}
+</style>

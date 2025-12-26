@@ -1,0 +1,33 @@
+baseURL = 'https://SpectrumLY.github.io/'
+languageCode = 'en-us'
+title = 'Spectrum Space'
+theme = "FixIt"
+
+[params]
+  [params.header]
+    [params.header.title]
+      name = "Spectrum Space"
+      link = "/about/" 
+
+# --- 关键修改：确保 markup 只出现一次 ---
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true  # 这个属性允许你渲染地图脚本和 HTML 按钮
+
+[menu]
+  [[menu.main]]
+    identifier = "about"
+    name = "About"
+    url = "/about/"
+    weight = 1
+  [[menu.main]]
+    identifier = "photos"
+    name = "Photography"
+    url = "/photomap/"
+    weight = 10
+  [[menu.main]]
+    identifier = "research"
+    name = "Research"
+    url = "/research/"
+    weight = 20

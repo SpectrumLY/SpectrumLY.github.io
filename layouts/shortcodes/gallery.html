@@ -1,0 +1,64 @@
+<div class="photography-showcase">
+  <div class="photo-grid">
+    {{ .Inner }}
+  </div>
+</div>
+
+<style>
+  .photography-showcase { padding: 20px 0; }
+  
+  /* 现代化的网格布局：自动填充且保持比例 */
+  .photo-grid {
+    column-count: 2; /* 默认两列，模仿画报感 */
+    column-gap: 20px;
+  }
+  
+  @media (max-width: 768px) {
+    .photo-grid { column-count: 1; }
+  }
+
+  /* 单张照片的容器：增加呼吸感和下载支持 */
+  .photo-card {
+    display: inline-block;
+    width: 100%;
+    margin-bottom: 20px;
+    background: #f8f8f8;
+    border-radius: 4px; /* 小圆角比大圆角更显高级 */
+    overflow: hidden;
+    transition: all 0.4s ease;
+  }
+
+  .photo-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  }
+
+  .photo-card img {
+    width: 100%;
+    height: auto;
+    display: block;
+    cursor: zoom-in;
+  }
+
+  /* 照片下方的精致文字描述 */
+  .photo-info {
+    padding: 12px;
+    background: #fff;
+    border-top: 1px solid #eee;
+  }
+
+  .photo-title {
+    font-size: 0.9rem;
+    color: #333;
+    font-weight: 500;
+    margin-bottom: 4px;
+    display: block;
+  }
+
+  .photo-meta {
+    font-size: 0.75rem;
+    color: #999;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+</style>

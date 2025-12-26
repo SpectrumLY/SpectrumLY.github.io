@@ -1,0 +1,11 @@
+<ul class="update-list">
+    {{ range first 3 (where .Site.RegularPages "Section" "in" (slice "posts" "photos")) }}
+    <li>
+        <span class="update-date">{{ .Date.Format "2006-01-02" }}</span>
+        <span class="update-content">
+            更新了{{ if eq .Section "photos" }}摄影集{{ else }}文章{{ end }}：
+            <a href="{{ .RelPermalink }}" style="color: inherit; text-decoration: underline;">{{ .Title }}</a>
+        </span>
+    </li>
+    {{ end }}
+</ul>
