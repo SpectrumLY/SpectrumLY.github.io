@@ -1,143 +1,608 @@
 <div class="curated-auto-gallery">
-    {{ range $index, $element := .Page.Resources.Match "*.jpg" }}
-    <div class="gallery-item">
-        <div class="museum-frame">
-            <a href="{{ .RelPermalink }}" target="_blank" class="photo-link">
-                <div class="image-stage">
-                    <img src="{{ .RelPermalink }}" alt="{{ .Name }}" loading="lazy">
-                </div>
-            </a>
-            
-            <div class="meta-inline">
-                <span class="serial-no">{{ printf "%02d" (add $index 1) }}</span>
-                <span class="label-dot"></span>
-                <span class="caption-text">
-                    {{ $baseName := replace (replace (replace .Name ".jpg" "") ".JPG" "") "-" " " }}
-                    {{ if and .Title (not (in (lower .Title) ".jpg")) }}
-                        {{ .Title }}
-                    {{ else }}
-                        {{ $baseName }}
-                    {{ end }}
-                </span>
-            </div>
+  {{ range $index, $element := .Page.Resources.Match "*.jpg" }}
+  <div class="gallery-item">
+    <div class="museum-frame">
 
-            {{ with .Params.description }}
-            <div class="photo-description">
-                {{ . }}
-            </div>
-            {{ end }}
+      {{ $baseName := replace (replace (replace .Name ".jpg" "") ".JPG" "") "-" " " }}
+      {{ $title := "" }}
+      {{ if and .Title (not (in (lower .Title) ".jpg")) }}
+        {{ $title = .Title }}
+      {{ else }}
+        {{ $title = $baseName }}
+      {{ end }}
+
+      {{ $desc := "" }}
+      {{ with .Params.description }}{{ $desc = . }}{{ end }}
+
+      {{ $journal := "" }}
+      {{ with .Params.journal }}{{ $journal = . }}{{ end }}
+      {{ if and (eq $journal "") (.Params.diary) }}{{ $journal = .Params.diary }}{{ end }}
+      {{ if and (eq $journal "") (.Params.note) }}{{ $journal = .Params.note }}{{ end }}
+
+      {{ $place := "" }}
+      {{ with .Params.place }}{{ $place = . }}{{ end }}
+
+      {{ $taken := "" }}
+      {{ with .Params.taken }}{{ $taken = . }}{{ end }}
+
+      <!-- ✅ 点击进入 Lightbox（不跳转、不下载）
+           ✅ 多行文本用 jsonify 安全写入 data-*，避免换行/引号截断 -->
+      <a href="{{ .RelPermalink }}"
+         class="photo-link js-lightbox"
+         data-full="{{ .RelPermalink }}"
+         data-title='{{ $title | jsonify }}'
+         data-serial="{{ printf "%02d" (add $index 1) }}"
+         data-desc='{{ $desc | jsonify }}'
+         data-journal='{{ $journal | jsonify }}'
+         data-place='{{ $place | jsonify }}'
+         data-taken='{{ $taken | jsonify }}'>
+        <div class="image-stage">
+          <img src="{{ .RelPermalink }}" alt="{{ .Name }}" loading="lazy" decoding="async">
         </div>
+      </a>
+
+      <div class="meta-inline">
+        <span class="serial-no">{{ printf "%02d" (add $index 1) }}</span>
+        <span class="label-dot"></span>
+        <span class="caption-text">{{ $title }}</span>
+      </div>
+
+      <!-- ✅ 列表页也显示地点+日期（没有就不显示） -->
+      {{ if or $place $taken }}
+      <div class="meta-subline">
+        {{ if $place }} {{ upper $place }}{{ end }}
+        {{ if and $place $taken }} · {{ end }}
+        {{ with $taken }}
+          {{ $t := . }}
+          {{ $t = replace $t "-" "." }}
+          {{ $t = replace $t "/" "." }}
+          {{ $t = replace $t "_" "." }}
+          {{ $t = replace $t " " "" }}
+          {{/* 你常用 2025.7 / 2025.07 / 2025.07.15 都允许，原样展示 */}}
+          {{ $t }}
+        {{ end }}
+      </div>
+      {{ end }}
+
+      {{ with .Params.description }}
+      <div class="photo-description">
+        {{ . }}
+      </div>
+      {{ end }}
+
     </div>
-    {{ end }}
+  </div>
+  {{ end }}
 </div>
+
+<!-- ✅ Lightbox：抽屉 NOTE 方案（不固定左右，画面自适应） -->
+<div id="lightbox" class="lightbox" aria-hidden="true">
+  <div class="lb-stage" role="dialog" aria-modal="true" aria-label="Photo viewer">
+    <button class="lb-close" type="button" aria-label="Close">×</button>
+
+    <button class="lb-prev" type="button" aria-label="Previous">‹</button>
+    <div class="lb-media">
+      <img class="lb-img" alt="">
+    </div>
+    <button class="lb-next" type="button" aria-label="Next">›</button>
+
+    <!-- ✅ 展签条（两行：标题 + 地点日期） -->
+    <div class="lb-captionbar">
+      <div class="lb-cap-left">
+        <div class="lb-topline">
+          <span class="lb-serial"></span>
+          <span class="lb-dot"></span>
+          <span class="lb-caption"></span>
+        </div>
+        <div class="lb-subline"></div>
+      </div>
+
+      <!-- ✅ 有 journal 才出现 -->
+      <button class="lb-note-btn" type="button" aria-expanded="false">NOTE</button>
+    </div>
+
+    <!-- ✅ 抽屉：description + journal（默认收起） -->
+    <div class="lb-drawer" aria-hidden="true">
+      <div class="lb-drawer-inner">
+        <div class="lb-drawer-head">
+          <div class="lb-drawer-title">JOURNAL</div>
+          <button class="lb-drawer-close" type="button" aria-label="Close note">×</button>
+        </div>
+
+        <div class="lb-desc"></div>
+        <div class="lb-journal-text"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const links = Array.from(document.querySelectorAll('.js-lightbox'));
+  if (!links.length) return;
+
+  const lb = document.getElementById('lightbox');
+  const img = lb.querySelector('.lb-img');
+
+  const caption = lb.querySelector('.lb-caption');
+  const serial = lb.querySelector('.lb-serial');
+  const subline = lb.querySelector('.lb-subline');
+
+  const noteBtn = lb.querySelector('.lb-note-btn');
+  const drawer = lb.querySelector('.lb-drawer');
+  const drawerClose = lb.querySelector('.lb-drawer-close');
+
+  const descEl = lb.querySelector('.lb-desc');
+  const journalEl = lb.querySelector('.lb-journal-text');
+
+  const closeBtn = lb.querySelector('.lb-close');
+  const prevBtn = lb.querySelector('.lb-prev');
+  const nextBtn = lb.querySelector('.lb-next');
+
+  let index = 0;
+
+  function readJSONAttr(el, name) {
+    const raw = el.getAttribute(name);
+    if (!raw) return '';
+    try { return JSON.parse(raw); } catch (e) { return raw; }
+  }
+
+  // ✅ 你偏好：2025.7（到月）为主；如果给了日，也允许显示到日
+  // 支持：2025.7 / 2025.07 / 2025.7.15 / 2025-7-15 / 2025-07 / 2025/7 等
+  function formatTakenMonthFirst(s){
+    const v = (s || '').toString().trim();
+    if (!v) return '';
+
+    // 统一分隔符
+    const norm = v.replace(/[-/ _]+/g, '.');
+
+    // 解析：YYYY.M 或 YYYY.M.D
+    let m = norm.match(/^(\d{4})\.(\d{1,2})(?:\.(\d{1,2}))?$/);
+    if (!m) return norm; // 如果用户写了别的，原样返回
+
+    const y = m[1];
+    const mm = String(parseInt(m[2], 10)); // 不补零：7 而不是 07
+    const dd = m[3] ? String(parseInt(m[3], 10)) : '';
+
+    return dd ? `${y}.${mm}.${dd}` : `${y}.${mm}`;
+  }
+
+  function closeDrawer() {
+    drawer.classList.remove('is-open');
+    drawer.setAttribute('aria-hidden', 'true');
+    noteBtn.setAttribute('aria-expanded', 'false');
+    lb.classList.remove('is-reading');
+  }
+
+  function openDrawer() {
+    drawer.classList.add('is-open');
+    drawer.setAttribute('aria-hidden', 'false');
+    noteBtn.setAttribute('aria-expanded', 'true');
+    lb.classList.add('is-reading');
+  }
+
+  function syncDrawerMaxHeight() {
+    drawer.style.setProperty('--drawerMax', `${Math.max(160, Math.min(360, window.innerHeight * 0.38))}px`);
+  }
+
+  function render(i) {
+    index = (i + links.length) % links.length;
+    const a = links[index];
+
+    const full = a.getAttribute('data-full') || a.getAttribute('href');
+    const t = readJSONAttr(a, 'data-title');
+    const sn = (a.getAttribute('data-serial') || '').toString();
+    const d = readJSONAttr(a, 'data-desc');
+    const j = readJSONAttr(a, 'data-journal');
+    const place = readJSONAttr(a, 'data-place');
+    const taken = readJSONAttr(a, 'data-taken');
+
+    img.src = full;
+    img.alt = (t || '').toString();
+
+    caption.textContent = (t || '').toString();
+    serial.textContent = sn;
+
+    // ✅ 地点 + 日期展签行：IN WATSONS BAY · 2025.7（默认到月；若有日则带日）
+    const p = (place || '').toString().trim();
+    const dt = formatTakenMonthFirst(taken);
+
+    let line = '';
+    if (p && dt) line = `IN ${p.toUpperCase()} · ${dt}`;
+    else if (p) line = `IN ${p.toUpperCase()}`;
+    else if (dt) line = dt;
+
+    subline.textContent = line;
+    subline.style.display = line ? 'block' : 'none';
+
+    const descText = (d || '').toString().trim();
+    descEl.textContent = descText;
+    descEl.style.display = descText ? 'block' : 'none';
+
+    const journalText = (j || '').toString().trim();
+    journalEl.textContent = journalText;
+    journalEl.style.display = journalText ? 'block' : 'none';
+
+    // NOTE 只在有 journal 时出现
+    noteBtn.style.display = journalText ? 'inline-flex' : 'none';
+
+    // 换图默认收起（像观展）
+    closeDrawer();
+
+    // 抽屉高度自适应
+    syncDrawerMaxHeight();
+  }
+
+  function openAt(i) {
+    lb.classList.add('is-open');
+    lb.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    render(i);
+  }
+
+  function close() {
+    closeDrawer();
+    lb.classList.remove('is-open');
+    lb.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    img.src = '';
+  }
+
+  links.forEach((a, i) => {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      openAt(i);
+    });
+  });
+
+  closeBtn.addEventListener('click', close);
+  lb.addEventListener('click', (e) => { if (e.target === lb) close(); });
+
+  prevBtn.addEventListener('click', (e) => { e.stopPropagation(); render(index - 1); });
+  nextBtn.addEventListener('click', (e) => { e.stopPropagation(); render(index + 1); });
+
+  noteBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (drawer.classList.contains('is-open')) closeDrawer();
+    else openDrawer();
+  });
+
+  drawerClose.addEventListener('click', (e) => {
+    e.stopPropagation();
+    closeDrawer();
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (!lb.classList.contains('is-open')) return;
+    if (e.key === 'Escape') close();
+    if (e.key === 'ArrowLeft') render(index - 1);
+    if (e.key === 'ArrowRight') render(index + 1);
+    if (e.key.toLowerCase() === 'n' && noteBtn.style.display !== 'none') {
+      if (drawer.classList.contains('is-open')) closeDrawer();
+      else openDrawer();
+    }
+  });
+
+  // 手机左右滑动切换（抽屉打开时也可滑，但不影响滚动）
+  let x0 = null;
+  lb.addEventListener('touchstart', (e) => {
+    if (!lb.classList.contains('is-open')) return;
+    x0 = e.touches[0].clientX;
+  }, {passive: true});
+
+  lb.addEventListener('touchend', (e) => {
+    if (!lb.classList.contains('is-open') || x0 === null) return;
+    const x1 = e.changedTouches[0].clientX;
+    const dx = x1 - x0;
+    x0 = null;
+    if (Math.abs(dx) > 40) {
+      if (dx > 0) render(index - 1);
+      else render(index + 1);
+    }
+  }, {passive: true});
+
+  // 窗口变化时更新抽屉最大高度
+  window.addEventListener('resize', () => {
+    if (!lb.classList.contains('is-open')) return;
+    syncDrawerMaxHeight();
+  });
+})();
+</script>
 
 <style>
 /* --- 布局模块 --- */
 .curated-auto-gallery {
-    column-count: 2;
-    column-gap: 50px;
-    padding: 30px 0;
+  column-count: 2;
+  column-gap: 50px;
+  padding: 30px 0;
 }
-
 @media (max-width: 768px) {
-    .curated-auto-gallery {
-        column-count: 1;
-        column-gap: 0;
-    }
+  .curated-auto-gallery { column-count: 1; column-gap: 0; }
 }
-
-.gallery-item {
-    break-inside: avoid;
-    margin-bottom: 70px;
-}
+.gallery-item { break-inside: avoid; margin-bottom: 70px; }
 
 /* --- 画框模块：自动适配颜色的边框 --- */
 .image-stage {
-    position: relative;
-    /* 使用 currentColor 配合透明度：它会自动根据当前文字颜色变浅或变深 */
-    border: 1px solid currentColor; 
-    background: #000;
-    line-height: 0;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.06);
-    transition: all 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
+  position: relative;
+  border: 1px solid currentColor;
+  background: #000;
+  line-height: 0;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+  transition: all 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
-
 .museum-frame:hover .image-stage {
-    transform: translateY(-8px);
-    box-shadow: 0 25px 50px rgba(0,0,0,0.12);
+  transform: translateY(-8px);
+  box-shadow: 0 25px 50px rgba(0,0,0,0.12);
 }
-
-.image-stage img {
-    width: 100%;
-    height: auto;
-    display: block;
-}
+.image-stage img { width: 100%; height: auto; display: block; }
 
 /* --- 文字模块：核心修复 --- */
 .meta-inline {
-    margin-top: 18px;
-    display: flex;
-    align-items: center;
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
 }
-
 .serial-no {
-    font-family: 'Cinzel', serif;
-    font-size: 0.7rem;
-    color: #888; /* 固定一个中性色 */
+  font-family: 'Cinzel', serif;
+  font-size: 0.7rem;
+  color: #888;
 }
-
 .label-dot {
-    width: 3px;
-    height: 3px;
-    /* 这里的颜色设为跟标题文字一致 */
-    background: currentColor; 
-    opacity: 0.3;
-    border-radius: 50%;
-    margin: 0 12px;
+  width: 3px;
+  height: 3px;
+  background: currentColor;
+  opacity: 0.3;
+  border-radius: 50%;
+  margin: 0 12px;
 }
-
 .caption-text {
-    font-family: 'Cinzel', serif;
-    font-size: 0.8rem;
-    /* 关键：使用 inherit 强制跟随父元素(即主题)的文字颜色 */
-    color: inherit; 
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    font-weight: 600;
+  font-family: 'Cinzel', serif;
+  font-size: 0.8rem;
+  color: inherit;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  font-weight: 600;
 }
 
-/* --- 笔记模块 --- */
+/* ✅ 列表页地点日期：像展签的小字 */
+.meta-subline{
+  margin-top: 8px;
+  padding-left: 32px; /* 和 description 的左边距统一 */
+  font-family: 'Cinzel', serif;
+  font-size: 0.68rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  opacity: 0.55;
+  line-height: 1.4;
+}
+
+/* --- 笔记模块（列表页） --- */
 .photo-description {
-    margin-top: 12px;
-    padding-left: 32px;
-    font-size: 0.85rem;
-    /* 描述文字也设为 inherit 但调低透明度 */
-    color: inherit;
-    opacity: 0.7; 
-    line-height: 1.7;
-    font-style: italic;
-    font-family: "Noto Serif SC", "PingFang SC", serif;
-    border-left: 1px solid currentColor;
-    border-left-width: 1px;
-    margin-left: 2px;
+  margin-top: 12px;
+  padding-left: 32px;
+  font-size: 0.85rem;
+  color: inherit;
+  opacity: 0.7;
+  line-height: 1.7;
+  font-style: italic;
+  font-family: "Noto Serif SC", "PingFang SC", serif;
+  border-left: 1px solid currentColor;
+  border-left-width: 1px;
+  margin-left: 2px;
 }
-
-.museum-frame:hover .label-dot {
-    opacity: 1;
-    transform: scale(1.5);
-}
-
+.museum-frame:hover .label-dot { opacity: 1; transform: scale(1.5); }
 .photo-link { text-decoration: none; display: block; color: inherit; }
 
-/* 针对暗色模式的强制补丁：如果主题的 inherit 还是黑的，这里做最后兜底 */
+/* 针对暗色模式的强制补丁 */
 @media (prefers-color-scheme: dark) {
-    .caption-text { color: #fff !important; }
+  .caption-text { color: #fff !important; }
+}
+.dark .caption-text,
+[data-theme='dark'] .caption-text,
+.night .caption-text { color: #ffffff !important; }
+
+/* ===============================
+   ✅ Lightbox：抽屉 NOTE 观展模式（更自然，不固定左右）
+   =============================== */
+.lightbox{
+  position: fixed;
+  inset: 0;
+  display: none;
+  background: rgba(0,0,0,0.82);
+  z-index: 9999;
+  padding: 22px 14px;
+}
+.lightbox.is-open{ display: grid; place-items: center; }
+
+.lb-stage{
+  position: relative;
+  width: min(1200px, 96vw);
+  color: #fff;
 }
 
-/* 如果你的主题是通过类名控制，这里再加上常用类名的强制覆盖 */
-.dark .caption-text, 
-[data-theme='dark'] .caption-text,
-.night .caption-text { 
-    color: #ffffff !important; 
+/* 主图区域 */
+.lb-media{
+  border: 1px solid rgba(255,255,255,0.18);
+  background: #000;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.35);
+}
+.lb-img{
+  width: 100%;
+  height: 80vh;
+  object-fit: contain;
+  display: block;
+}
+
+/* 控制按钮 */
+.lb-close{
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(0,0,0,0.35);
+  color: #fff;
+  font-size: 24px;
+  cursor: pointer;
+}
+.lb-prev, .lb-next{
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 64px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.20);
+  background: rgba(0,0,0,0.35);
+  color: #fff;
+  font-size: 34px;
+  cursor: pointer;
+}
+.lb-prev{ left: -58px; }
+.lb-next{ right: -58px; }
+@media (max-width: 900px){
+  .lb-prev{ left: 8px; }
+  .lb-next{ right: 8px; }
+  .lb-img{ height: 66vh; }
+}
+
+/* ✅ 展签条：两行（标题 + 地点日期） */
+.lb-captionbar{
+  margin-top: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-family: 'Cinzel', serif;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  font-size: 12px;
+  opacity: 0.92;
+}
+.lb-cap-left{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.lb-topline{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.lb-serial{ opacity: 0.65; }
+.lb-dot{
+  width: 3px;
+  height: 3px;
+  border-radius: 99px;
+  background: #fff;
+  opacity: 0.35;
+}
+.lb-caption{ font-weight: 600; }
+
+.lb-subline{
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  letter-spacing: 3px;
+  opacity: 0.60;
+  padding-left: 18px;
+  line-height: 1.4;
+  display: none;
+}
+
+/* NOTE 按钮 */
+.lb-note-btn{
+  margin-left: auto;
+  font-family: 'Cinzel', serif;
+  letter-spacing: 3px;
+  font-size: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.22);
+  background: rgba(0,0,0,0.25);
+  color: #fff;
+  cursor: pointer;
+  opacity: 0.88;
+  display: none;
+}
+
+/* 抽屉：从底部升起 */
+.lb-drawer{
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -8px;
+  transform: translateY(120%);
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+.lb-drawer.is-open{
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.lb-drawer-inner{
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(0,0,0,0.62);
+  box-shadow: 0 18px 50px rgba(0,0,0,0.35);
+  padding: 14px 14px 16px;
+  border-radius: 14px;
+  backdrop-filter: blur(6px);
+  max-height: var(--drawerMax, 320px);
+  overflow: auto;
+}
+
+/* 抽屉头部 */
+.lb-drawer-head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.lb-drawer-title{
+  font-family: 'Cinzel', serif;
+  letter-spacing: 3px;
+  font-size: 11px;
+  opacity: 0.78;
+}
+.lb-drawer-close{
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.22);
+  background: rgba(0,0,0,0.25);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+/* 抽屉正文：description + journal */
+.lb-desc{
+  font-family: "Noto Serif SC", "PingFang SC", serif;
+  font-style: italic;
+  opacity: 0.78;
+  line-height: 1.7;
+  margin-bottom: 10px;
+  display: none;
+  border-left: 1px solid rgba(255,255,255,0.18);
+  padding-left: 12px;
+}
+.lb-journal-text{
+  font-family: "Noto Serif SC", "PingFang SC", serif;
+  font-style: italic;
+  opacity: 0.90;
+  line-height: 1.85;
+  white-space: pre-wrap;
+  display: none;
+  padding-left: 12px;
+  border-left: 1px solid rgba(255,255,255,0.12);
+}
+
+/* ✅ 小质感：打开抽屉时“更像在读展签” */
+.lightbox.is-reading .lb-media{
+  box-shadow: 0 25px 70px rgba(0,0,0,0.55);
+}
+.lightbox.is-reading .lb-subline{
+  opacity: 0.78;
 }
 </style>
